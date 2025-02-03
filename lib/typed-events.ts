@@ -10,6 +10,7 @@ export enum Feature {
 
   AGGREGATED_EVENTS = "AGGREGATED_EVENTS",
   ALL_EVENTS = "ALL_EVENTS",
+  PROD_DETAILS = "PROD_DETAILS"
 }
 
 interface Config {

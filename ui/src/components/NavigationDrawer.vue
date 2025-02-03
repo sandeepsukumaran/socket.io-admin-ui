@@ -45,10 +45,10 @@ export default {
   components: { ReadonlyToggle, ThemeSelector, LangSelector },
 
   computed: {
-    ...mapGetters("config", ["developmentMode"]),
+    ...mapGetters("config", ["developmentMode", "isProdDetailsMode"]),
     items() {
-      if (this.developmentMode) {
-        return [
+      if (this.developmentMode || this.isProdDetailsMode) {
+        const navigationItems = [
           {
             title: this.$t("dashboard.title"),
             icon: "mdi-home-outline",
@@ -71,16 +71,19 @@ export default {
             to: { name: "clients" },
           },
           {
-            title: this.$t("events.title"),
-            icon: "mdi-calendar-text-outline",
-            to: { name: "events" },
-          },
-          {
             title: this.$t("servers.title"),
             icon: "mdi-server",
             to: { name: "servers" },
           },
         ];
+        if(!this.isProdDetailsMode) {
+          navigationItems.splice(4, 0, {
+            title: this.$t("events.title"),
+            icon: "mdi-calendar-text-outline",
+            to: { name: "events" },
+          });
+        }
+        return navigationItems;
       } else {
         return [
           {

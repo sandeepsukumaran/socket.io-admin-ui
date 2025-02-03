@@ -1,18 +1,11 @@
-import { Namespace, RemoteSocket, Server, Socket } from "socket.io";
-import {
-  ClientEvents,
-  Feature,
-  NamespaceDetails,
-  NamespaceEvent,
-  SerializedSocket,
-  ServerEvents,
-} from "./typed-events";
+import {Namespace, RemoteSocket, Server, Socket} from "socket.io";
+import {ClientEvents, Feature, NamespaceDetails, NamespaceEvent, SerializedSocket, ServerEvents,} from "./typed-events";
 import debugModule from "debug";
-import { compare, getRounds } from "bcryptjs";
-import { isWorker } from "cluster";
-import { InMemoryStore, Store } from "./stores";
+import {compare, getRounds} from "bcryptjs";
+import {isWorker} from "cluster";
+import {InMemoryStore, Store} from "./stores";
+import {randomBytes} from "crypto";
 import os = require("os");
-import { randomBytes } from "crypto";
 
 const debug = debugModule("socket.io-admin");
 const randomId = () => randomBytes(8).toString("hex");
@@ -51,7 +44,7 @@ interface InstrumentOptions {
   /**
    * Whether to send all events or only aggregated events to the UI, for performance purposes.
    */
-  mode: "development" | "production";
+  mode: "development" | "production" | "production-details";
 }
 
 const initAuthenticationMiddleware = (
@@ -313,7 +306,8 @@ const registerFeatureHandlers = (
 
 const registerVerboseListeners = (
   adminNamespace: Namespace<{}, ServerEvents>,
-  nsp: Namespace
+  nsp: Namespace,
+  verboseEvents: boolean
 ) => {
   nsp.prependListener("connection", (socket) => {
     // @ts-ignore
@@ -368,9 +362,13 @@ const registerVerboseListeners = (
     if (nsp !== adminNamespace) {
       if (typeof socket.onAny === "function") {
         socket.onAny((...args: any[]) => {
-          const withAck = typeof args[args.length - 1] === "function";
-          if (withAck) {
-            args = args.slice(0, -1);
+          if(verboseEvents) {
+            const withAck = typeof args[args.length - 1] === "function";
+            if (withAck) {
+              args = args.slice(0, -1);
+            }
+          } else {
+            args = []
           }
           adminNamespace.emit(
             "event_received",
@@ -387,7 +385,7 @@ const registerVerboseListeners = (
             "event_sent",
             nsp.name,
             socket.id,
-            args,
+            verboseEvents ? args : [],
             new Date()
           );
         });
@@ -564,8 +562,12 @@ export function instrument(io: Server, opts: Partial<InstrumentOptions>) {
   const supportedFeatures = options.readonly ? [] : detectSupportedFeatures(io);
   supportedFeatures.push(Feature.AGGREGATED_EVENTS);
   const isDevelopmentMode = options.mode === "development";
-  if (isDevelopmentMode) {
+  const isProductionWithDetailsMode = options.mode === "production-details";
+  if (isDevelopmentMode || isProductionWithDetailsMode) {
     supportedFeatures.push(Feature.ALL_EVENTS);
+  }
+  if(isProductionWithDetailsMode) {
+    supportedFeatures.push(Feature.PROD_DETAILS);
   }
   debug("supported features: %j", supportedFeatures);
 
@@ -576,16 +578,16 @@ export function instrument(io: Server, opts: Partial<InstrumentOptions>) {
       supportedFeatures,
     });
 
-    if (isDevelopmentMode) {
+    if (isDevelopmentMode || isProductionWithDetailsMode) {
       socket.emit("all_sockets", await fetchAllSockets(io));
     }
   });
 
   registerEngineListeners(io);
 
-  if (isDevelopmentMode) {
+  if (isDevelopmentMode || isProductionWithDetailsMode) {
     const registerNamespaceListeners = (nsp: Namespace) => {
-      registerVerboseListeners(adminNamespace, nsp);
+      registerVerboseListeners(adminNamespace, nsp, isDevelopmentMode);
     };
     io._nsps.forEach(registerNamespaceListeners);
     io.on("new_namespace", registerNamespaceListeners);

@@ -5,7 +5,7 @@
 
       <v-spacer />
 
-      <v-btn v-if="developmentMode" :to="{ name: 'sockets' }" small>
+      <v-btn v-if="developmentMode || isProdDetailsMode" :to="{ name: 'sockets' }" small>
         <v-icon>mdi-dots-horizontal</v-icon>
       </v-btn>
     </v-card-title>
@@ -48,7 +48,7 @@ export default {
           };
         }),
     }),
-    ...mapGetters("config", ["hasAggregatedValues", "developmentMode"]),
+    ...mapGetters("config", ["hasAggregatedValues", "developmentMode", "isProdDetailsMode"]),
     ...mapGetters("servers", {
       liteNamespaces: "namespaces",
     }),

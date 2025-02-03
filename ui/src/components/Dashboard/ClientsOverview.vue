@@ -5,7 +5,7 @@
 
       <v-spacer />
 
-      <v-btn v-if="developmentMode" :to="{ name: 'clients' }" small>
+      <v-btn v-if="developmentMode || isProdDetailsMode" :to="{ name: 'clients' }" small>
         <v-icon>mdi-dots-horizontal</v-icon>
       </v-btn>
     </v-card-title>
@@ -82,7 +82,7 @@ export default {
       darkTheme: (state) => state.config.darkTheme,
       servers: (state) => state.servers.servers,
     }),
-    ...mapGetters("config", ["hasAggregatedValues", "developmentMode"]),
+    ...mapGetters("config", ["hasAggregatedValues", "developmentMode", "isProdDetailsMode"]),
 
     clientsCount() {
       if (this.hasAggregatedValues) {

@@ -19,6 +19,9 @@ export default {
     hasAggregatedValues: (state) => {
       return state.supportedFeatures.includes("AGGREGATED_EVENTS");
     },
+    isProdDetailsMode(state) {
+      return state.supportedFeatures.includes("PROD_DETAILS")
+    }
   },
   mutations: {
     init(state) {
