@@ -1,5 +1,5 @@
 import {Namespace, RemoteSocket, Server, Socket} from "socket.io";
-import {ClientEvents, Feature, NamespaceDetails, NamespaceEvent, SerializedSocket, ServerEvents,} from "./typed-events";
+import {ClientEvents, Feature, Metrics, NamespaceDetails, NamespaceEvent, SerializedSocket, ServerEvents,} from "./typed-events";
 import debugModule from "debug";
 import {compare, getRounds} from "bcryptjs";
 import {isWorker} from "cluster";
@@ -483,12 +483,14 @@ class EventBuffer {
   }
 }
 
-const registerEngineListeners = (io: Server) => {
+const registerEngineListeners = (io: Server, metrics?: Metrics) => {
   io._eventBuffer = new EventBuffer();
   io._pollingClientsCount = 0;
 
   const onConnection = (rawSocket: any) => {
     io._eventBuffer.push("rawConnection");
+    metrics?.connectTotal.inc();
+    metrics?.connectedSockets.inc();
 
     if (rawSocket.transport.name === "polling") {
       io._pollingClientsCount++;
@@ -508,19 +510,26 @@ const registerEngineListeners = (io: Server) => {
     rawSocket.on("packetCreate", ({ data }: { data: string | Buffer }) => {
       if (data) {
         io._eventBuffer.push("packetsOut", undefined);
-        io._eventBuffer.push("bytesOut", undefined, Buffer.byteLength(data));
+        const byteLen = Buffer.byteLength(data);
+        io._eventBuffer.push("bytesOut", undefined, byteLen);
+        metrics?.eventsSentTotal.inc();
+        metrics?.bytesTransmitted.inc(byteLen);
       }
     });
 
     rawSocket.on("packet", ({ data }: { data: string | Buffer }) => {
       if (data) {
         io._eventBuffer.push("packetsIn", undefined);
-        io._eventBuffer.push("bytesIn", undefined, Buffer.byteLength(data));
+        const byteLen = Buffer.byteLength(data);
+        io._eventBuffer.push("bytesIn", undefined, byteLen);
+        metrics?.eventsReceivedTotal.inc();
+        metrics?.bytesReceived.inc(byteLen);
       }
     });
 
     rawSocket.on("close", (reason: string) => {
       io._eventBuffer.push("rawDisconnection", reason);
+      metrics?.connectedSockets.dec();
     });
   };
 
@@ -538,7 +547,7 @@ const registerEngineListeners = (io: Server) => {
   }
 };
 
-export function instrument(io: Server, opts: Partial<InstrumentOptions>) {
+export function instrument(io: Server, opts: Partial<InstrumentOptions>, metrics?: Metrics) {
   const options: InstrumentOptions = Object.assign(
     {
       namespaceName: "/admin",
@@ -583,7 +592,7 @@ export function instrument(io: Server, opts: Partial<InstrumentOptions>) {
     }
   });
 
-  registerEngineListeners(io);
+  registerEngineListeners(io, metrics);
 
   if (isDevelopmentMode || isProductionWithDetailsMode) {
     const registerNamespaceListeners = (nsp: Namespace) => {

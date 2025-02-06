@@ -1,3 +1,5 @@
+import {Counter, Gauge} from "prom-client";
+
 export enum Feature {
   EMIT = "EMIT",
   JOIN = "JOIN",
@@ -83,4 +85,15 @@ export interface ClientEvents {
   join: (nsp: string, room: string, filter?: string) => void;
   leave: (nsp: string, room: string, filter?: string) => void;
   _disconnect: (nsp: string, close: boolean, filter?: string) => void;
+}
+
+export interface Metrics {
+  connectedSockets: Gauge;
+  connectTotal: Counter;
+  disconnectTotal: Counter;
+  eventsReceivedTotal: Counter;
+  eventsSentTotal: Counter;
+  bytesReceived: Counter;
+  bytesTransmitted: Counter;
+  defaultNamespaceConnectedSockets: Gauge;
 }
