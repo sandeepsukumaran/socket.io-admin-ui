@@ -359,16 +359,12 @@ const registerVerboseListeners = (
       });
     });
 
-    if (nsp !== adminNamespace) {
+    if (verboseEvents && nsp !== adminNamespace) {
       if (typeof socket.onAny === "function") {
         socket.onAny((...args: any[]) => {
-          if(verboseEvents) {
-            const withAck = typeof args[args.length - 1] === "function";
-            if (withAck) {
-              args = args.slice(0, -1);
-            }
-          } else {
-            args = []
+          const withAck = typeof args[args.length - 1] === "function";
+          if (withAck) {
+            args = args.slice(0, -1);
           }
           adminNamespace.emit(
             "event_received",
@@ -385,7 +381,7 @@ const registerVerboseListeners = (
             "event_sent",
             nsp.name,
             socket.id,
-            verboseEvents ? args : [],
+            args,
             new Date()
           );
         });
