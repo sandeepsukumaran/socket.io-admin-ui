@@ -143,7 +143,7 @@ const initStatsEmitter = (
     );
   };
 
-  const interval = setInterval(emitStats, 2000);
+  const interval = setInterval(emitStats, 15_000);
   interval.unref(); // so that the timer does not prevent the process from exiting
   emitStats();
 };
@@ -460,8 +460,8 @@ class EventBuffer {
 
   public push(type: string, subType?: string, count = 1) {
     const timestamp = new Date();
-    timestamp.setMilliseconds(0);
-    const key = `${timestamp.getTime()};${type};${subType}`;
+    const fiveSecondBucket = Math.floor(timestamp.getTime() / 5000) * 5000;
+    const key = `${fiveSecondBucket};${type};${subType}`;
     if (this.buffer.has(key)) {
       this.buffer.get(key)!.count += count;
     } else {
