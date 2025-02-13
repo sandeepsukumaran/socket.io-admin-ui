@@ -321,6 +321,7 @@ const registerVerboseListeners = (
         set(target: any, p: string | symbol, value: any): boolean {
           target[p] = createProxy(value);
 
+          console.log(`Socket: ${socket.id} proxy data updated! Field:${String(p)}.`)
           adminNamespace.emit("socket_updated", {
             id: socket.id,
             nsp: nsp.name,
@@ -360,6 +361,7 @@ const registerVerboseListeners = (
     });
 
     if (verboseEvents && nsp !== adminNamespace) {
+      console.log('Registering verbose listeners.');
       if (typeof socket.onAny === "function") {
         socket.onAny((...args: any[]) => {
           const withAck = typeof args[args.length - 1] === "function";
